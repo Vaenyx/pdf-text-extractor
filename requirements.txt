@@ -1,0 +1,8 @@
+cffi==2.0.0 ; python_version >= "3.14" and platform_python_implementation != "PyPy"
+charset-normalizer==3.4.7 ; python_version >= "3.14"
+cryptography==47.0.0 ; python_version >= "3.14"
+pdfminer-six==20251230 ; python_version >= "3.14"
+pdfplumber==0.11.9 ; python_version >= "3.14"
+pillow==12.2.0 ; python_version >= "3.14"
+pycparser==3.0 ; platform_python_implementation != "PyPy" and implementation_name != "PyPy" and python_version >= "3.14"
+pypdfium2==5.7.1 ; python_version >= "3.14"
