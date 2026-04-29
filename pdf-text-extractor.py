@@ -1,76 +1,84 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser
-from pdfplumber import open as open_pdf
-from typing import Literal
+import pdfplumber
+import argparse
+import re
+import json
+import sys
 
 
-def extract_text_from_pdf(
-    input_pdf: str,
-    output_txt: str,
-    start_page: int,
-    end_page: int | Literal["all"],
-    replace_phrases: dict[str, str],
-) -> None:
-    with open_pdf(input_pdf) as pdf:
-        end_page_num = len(pdf.pages) if end_page == "all" else int(end_page)
+class Pdf:
+    def __init__(self, filepath: str):
+        self.__path = filepath
 
-        print(
-            f"Started text extraction of pdf '{input_pdf}'\nExtracting pages {start_page} to {end_page_num}{" (last page)" if end_page == "all" else ""}:"
+    @staticmethod
+    def _replace_phrases(content: str, phrase_map: dict[str, str]) -> str:
+        if not phrase_map:
+            return content
+
+        sorted_keys = sorted(phrase_map.keys(), key=len, reverse=True)
+        replace_pattern: re.Pattern = re.compile(
+            rf"\b({'|'.join(map(re.escape, sorted_keys))})\b"
         )
-        with open(output_txt, "w+", encoding="utf-8") as out:
-            for page_num in range(start_page - 1, end_page_num):
-                if page_num != start_page - 1:
-                    out.write("\n")
 
-                page = pdf.pages[page_num]
-                text = page.extract_text()
+        parsed_content: str = replace_pattern.sub(
+            lambda m: phrase_map[m.group(0)], content
+        )
+        return parsed_content
 
-                if not text:
-                    continue
+    def _extract_content(self, start_page: int | None, end_page: int | None) -> str:
+        start_page = start_page or 1
+        end_page = max(start_page, end_page) if end_page else None
 
-                for old, new in replace_phrases.items():
-                    text = text.replace(old, new)
+        with pdfplumber.open(self.__path) as pdf:
+            content: str = "\n\n".join(
+                page.extract_text() or ""
+                for page in pdf.pages[start_page - 1 : end_page]
+            )
+            return content
 
-                out.write(text)
-                print(
-                    f"Extracted page {page_num+1}/{end_page_num} ({int((page_num+1-start_page)/(end_page_num-start_page)*100)}%)\r",
-                    flush=True,
-                )
-
-    print("Extraction complete.")
-
-
-def parse_replace_argument(rep: str) -> dict:
-    """
-    Format: "old1~new1;old2~new2"
-    """
-    if not rep:
-        return {}
-
-    return dict(
-        pair.split("~", 1) for pair in rep.split(";", some_string) if "~" in pair
-    )
+    def get_content(
+        self, start_page: int | None, end_page: int | None, replace_map: dict[str, str]
+    ) -> str:
+        text_content: str = self._extract_content(
+            start_page=start_page, end_page=end_page
+        )
+        parsed_content: str = self._replace_phrases(
+            content=text_content, phrase_map=replace_map
+        )
+        return parsed_content
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser(description="PDF Text Extractor")
-    parser.add_argument("-pdf", required=True, help="Path to PDF file")
-    parser.add_argument("-out", required=True, help="Output text file path")
-    parser.add_argument("-s", type=int, default=1, help="Start page (default=1)")
-    parser.add_argument("-e", default="all", help="End page number or 'all'")
+def get_args() -> tuple[str, str | None, int | None, int | None, dict]:
+    parser = argparse.ArgumentParser(description="PDF Text Extractor")
+
+    parser.add_argument("filepath", help="PDF file path")
+    parser.add_argument("-o", "--out", help="Output file path")
+    parser.add_argument("-s", "--start", type=int, help="Start page")
+    parser.add_argument("-e", "--end", type=int, help="End page")
     parser.add_argument(
-        "-re", help="Replace phrases: 'old1~new1;old2~new2'", default=None
+        "-r",
+        "--replace",
+        default="{}",
+        type=json.loads,
+        help='Replace phrases as JSON (e.g. \'{"NORTH":"N"}\')',
     )
 
     args = parser.parse_args()
+    return args.filepath, args.out, args.start, args.end, dict(args.replace)
 
-    replace_dict = parse_replace_argument(rep=args.re)
 
-    extract_text_from_pdf(
-        input_pdf=args.pdf,
-        output_txt=args.out,
-        start_page=args.s,
-        end_page=args.e,
-        replace_phrases=replace_dict,
-    )
+def main() -> None:
+    filepath, out, start, end, replace = get_args()
+    pdf = Pdf(filepath=filepath)
+    content = pdf.get_content(start_page=start, end_page=end, replace_map=replace)
+
+    if not out:
+        print(content)
+        sys.exit(0)
+    with open(out, "w") as out_file:
+        out_file.write(content)
+
+
+if __name__ == "__main__":
+    main()
