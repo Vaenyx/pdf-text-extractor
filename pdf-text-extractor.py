@@ -61,7 +61,7 @@ def get_args() -> tuple[str, str | None, int | None, int | None, dict]:
         "--replace",
         default="{}",
         type=json.loads,
-        help='Replace phrases as JSON (e.g. \'{"NORTH":"N"}\')',
+        help=r"Replace phrases as JSON (e.g. '{\"dog\":\"cat\"}')",
     )
 
     args = parser.parse_args()
