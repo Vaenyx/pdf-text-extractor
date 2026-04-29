@@ -4,7 +4,7 @@ A python cli tool used to extract the text contents of a `.pdf` file.
 ## Prerequisites
 
 -   **python3** (Version >= 3.10)
--   **poetry** Python project management tool (optional)
+-   **poetry** Python project package management tool (optional)
 
 ## Installation
 
@@ -34,7 +34,7 @@ wget https://raw.githubusercontent.com/Vaenyx/pdf-text-extractor/main/requiremen
 
 #### Poetry
 ``` bash
-poetry run python3 pdf-text-extractor.py [OPTIONS]
+poetry run python3 pdf-text-extractor.py [OPTIONS] filepath
 ```
 
 #### Pip
@@ -51,7 +51,7 @@ python3 pdf-text-extractor [OPTIONS] filepath
 | `-o, --out <path>` | Output file path |
 | `-s, --start <page>` | Start page |
 | `-e, --end <page>` | End page |
-| `-r, --replace <json>` | Replace phrases as JSON (e.g. `'{"dog":"cat"}'`) |
+| `-r, --replace <json>` | Replace phrases as JSON (e.g. `'{\"dog\":\"cat\"}'`) |
 | `-h, --help` | Show help and exit |
 
 ---
